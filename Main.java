@@ -1,6 +1,8 @@
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.io.StringWriter;
+import java.util.ArrayList;
 
 import org.apache.commons.io.FileUtils;
 import java.io.IOException;
@@ -10,8 +12,11 @@ import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 import org.apache.poi.xssf.usermodel.XSSFCell;
@@ -32,6 +37,8 @@ import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.Parser;
 import org.apache.tika.sax.BodyContentHandler;
 import org.apache.tika.sax.ToXMLContentHandler;
+import org.json.JSONObject;
+import org.json.simple.parser.JSONParser;
 
 import com.sforce.soap.enterprise.Connector;
 import com.sforce.soap.enterprise.DeleteResult;
@@ -88,36 +95,124 @@ static final String PASSWORD = "";
   
   // queries and displays the 5 newest contacts
   private static void queryAttachment() {
+    JSONParser jsonParser = new JSONParser();
     
     System.out.println("Querying for Attachment...");
     
     try {
        
       // query for the 5 newest contacts      
-      //QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, Body, BodyLength, ContentType FROM Attachment Where Id = '00P5000000Hkop4'");
-        QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, BodyLength, Body, ContentType FROM Attachment Where BodyLength >= 367000 And BodyLength <= 368000 And ContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' And CreatedDate >= 2014-01-01T00:00:00Z And ParentId IN (Select Id From Facility_Lease_Agreement__c)  LIMIT 20");
+      QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, Body, BodyLength, ContentType FROM Attachment Where Id = '00P3800000hJuJE'");
+        //QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, BodyLength, Body, ContentType FROM Attachment Where BodyLength >= 367000 And BodyLength <= 368000 And ContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' And CreatedDate >= 2014-01-01T00:00:00Z And ParentId IN (Select Id From Facility_Lease_Agreement__c)  LIMIT 1");
         System.out.println("Result size: " + queryResults.getSize() + " Records Length: " + queryResults.getRecords().length);
     	
         if (queryResults.getSize() > 0) {
             boolean done = false;
             while (done == false) {
                 for (int i=0;i<queryResults.getRecords().length;i++) {
+                	
+                	JSONObject jsonObject = new JSONObject();
+                	
                     Attachment a = (Attachment)queryResults.getRecords()[i];
 
-                    String attachBody = a.getBody().toString();
+                    //String attachBody = a.getBody().toString();
                     //CAN READ THE EXCEL FILE CONTENTS
                     AutoDetectParser parser = new AutoDetectParser();
+                    //StringWriter strWriter = new StringWriter();
+                    ParseContext context = new ParseContext();
                     Metadata metadata = new Metadata();
                     BodyContentHandler handler = new BodyContentHandler();
                     InputStream stream = TikaInputStream.get(a.getBody());
-                    parser.parse(stream, handler, metadata);
+                    parser.parse(stream, handler, metadata, context);
                     String handlerBody = handler.toString();
                     //System.out.println("HANDLER: " + handlerBody);
+
+                    //HSSF POI LIBRARY
+                    Workbook wb = WorkbookFactory.create(stream);
+                    int loopLimit =  wb.getNumberOfSheets();
+                    System.out.println("NUMBER OF SHEETS: " + loopLimit);
                     
+            		for (int i1 = 0; i1 < loopLimit; i1++) {
+            			Sheet sheet = wb.getSheetAt(i1);
+            			if (sheet == null) {
+            				continue;
+            			}
+                        System.out.println("SHEET NAME: " + sheet.getSheetName());
+            			
+                    	for(int j=sheet.getFirstRowNum(); j<=sheet.getLastRowNum(); j++) {
+            	    		Row row = sheet.getRow(j);
+            	    		if(row==null || j > 5) {
+            	    			continue;
+            	    		}
+
+                            System.out.println("DATA FOR ROW: " + j);
+
+            	    		boolean hasValues = false;
+            	    		ArrayList<Object> rowData = new ArrayList<Object>();
+            	    		for(int k=0; k<=row.getLastCellNum(); k++) {
+            	    			Cell cell = row.getCell(k);
+            	    			if(cell!=null) {
+            	    				//Object value = cellToObject(cell);
+                                    System.out.println("CELL: " + cell);
+            	    				//hasValues = hasValues || value!=null;
+            	    				rowData.add(cell);
+            	    			} else {
+                                    rowData.add(null);
+                                }
+            	    		}
+                    	}
+            			/*
+            			ExcelWorksheet tmp = new ExcelWorksheet();
+            			tmp.setName(sheet.getSheetName());
+                    	for(int j=sheet.getFirstRowNum(); j<=sheet.getLastRowNum(); j++) {
+            	    		Row row = sheet.getRow(j);
+            	    		if(row==null) {
+            	    			continue;
+            	    		}
+            	    		boolean hasValues = false;
+            	    		ArrayList<Object> rowData = new ArrayList<Object>();
+            	    		for(int k=0; k<=row.getLastCellNum(); k++) {
+            	    			Cell cell = row.getCell(k);
+            	    			if(cell!=null) {
+            	    				Object value = cellToObject(cell);
+            	    				hasValues = hasValues || value!=null;
+            	    				rowData.add(value);
+            	    			} else {
+                                    rowData.add(null);
+                                }
+            	    		}
+            	    		if(hasValues||!config.isOmitEmpty()) {
+            					currentRowOffset++;
+            	    			if (rowLimit > 0 && totalRowsAdded == rowLimit) {
+            	    				break;
+            					}
+            					if (startRowOffset > 0 && currentRowOffset < startRowOffset) {
+            	    				continue;
+            					}
+            	    			tmp.addRow(rowData);
+            	    			totalRowsAdded++;
+            	    		}
+            	    	}
+                    	if(config.isFillColumns()) {
+                    		tmp.fillColumns();
+                    	}
+            			book.addExcelWorksheet(tmp);
+            			*/
+            		}
                     
                     System.out.println("Record Id: " + a.getId());
                     System.out.println("BODY HAS ADDRESS: " + handlerBody.contains("Address"));
                     System.out.println("BODY HAS SKU: " + handlerBody.contains("SKU"));
+                    
+                    //JSON TESTS
+                    //jsonObject.put("ika", handler.toString()); 
+                    //System.out.println("BODY JSON: " + jsonObject.toString());
+                    
+                    //METADATA TESTS
+                    String[] metadataNames = metadata.names();
+                    for(String name : metadataNames) {
+                       System.out.println(name + ": " + metadata.get(name));
+                    }
                 }
                 if (queryResults.isDone() == true) {
                     done = true;
@@ -237,6 +332,7 @@ static final String PASSWORD = "";
 }
   
 
+  
   /*
   public String parseToStringExample() throws IOException, SAXException, TikaException {
 	    Tika tika = new Tika();
