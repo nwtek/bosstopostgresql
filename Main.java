@@ -1,3 +1,38 @@
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.InputStream;
+
+import org.apache.commons.io.FileUtils;
+import java.io.IOException;
+
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.poifs.filesystem.POIFSFileSystem;
+import org.apache.poi.ss.usermodel.Workbook;
+
+import org.xml.sax.ContentHandler;
+import org.xml.sax.SAXException;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.tika.Tika;
+import org.apache.tika.config.TikaConfig;
+import org.apache.tika.detect.Detector;
+import org.apache.tika.io.TikaInputStream;
+import org.apache.tika.language.LanguageIdentifier;
+import org.apache.tika.language.LanguageProfile;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.mime.MediaType;
+import org.apache.tika.mime.MimeTypes;
+import org.apache.tika.parser.AutoDetectParser;
+import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.Parser;
+import org.apache.tika.sax.BodyContentHandler;
+import org.apache.tika.sax.ToXMLContentHandler;
+
 import com.sforce.soap.enterprise.Connector;
 import com.sforce.soap.enterprise.DeleteResult;
 import com.sforce.soap.enterprise.EnterpriseConnection;
@@ -5,14 +40,15 @@ import com.sforce.soap.enterprise.Error;
 import com.sforce.soap.enterprise.QueryResult;
 import com.sforce.soap.enterprise.SaveResult;
 import com.sforce.soap.enterprise.sobject.Account;
+import com.sforce.soap.enterprise.sobject.Attachment;
 import com.sforce.soap.enterprise.sobject.Contact;
 import com.sforce.ws.ConnectionException;
 import com.sforce.ws.ConnectorConfig;
 
 public class Main { 
   
-static final String USERNAME = "usrname";
-static final String PASSWORD = "psword";
+static final String USERNAME = "";
+static final String PASSWORD = "";
   static EnterpriseConnection connection;
 
   public static void main(String[] args) {
@@ -33,10 +69,13 @@ static final String PASSWORD = "psword";
       System.out.println("SessionId: "+config.getSessionId());
       
       // run the different examples
+      queryAttachment();
+      /*
       queryContacts();
       createAccounts();
       updateAccounts();
       deleteAccounts();
+      */
       
       
     } catch (ConnectionException e1) {
@@ -44,6 +83,127 @@ static final String PASSWORD = "psword";
     }  
 
   }
+  
+  
+  // queries and displays the 5 newest contacts
+  private static void queryAttachment() {
+    
+    System.out.println("Querying for Attachment...");
+    
+    try {
+       
+      // query for the 5 newest contacts      
+      QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, Body, BodyLength, ContentType FROM Attachment Where Id = '00P3800000hJuJE'");
+      if (queryResults.getSize() > 0) {
+        for (int i=0;i<queryResults.getRecords().length;i++) {
+          // cast the SObject to a strongly-typed Attachment
+          Attachment a = (Attachment)queryResults.getRecords()[i];
+
+          //HOW CAN I READ THE EXCEL FILE CONTENTS????
+          System.out.println("BODY: " + a.getBody().toString() );
+
+          //String filename = args[0];
+          //TikaConfig tikaConfig = TikaConfig.getDefaultConfig();
+          String contentType = new Tika().detect(a.getBody());
+          System.out.println("CONTENT TYPE: " + contentType );
+          //OUTPUT: CONTENT TYPE: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+          
+          AutoDetectParser parser = new AutoDetectParser();
+          Metadata metadata = new Metadata();
+          BodyContentHandler handler = new BodyContentHandler();
+          InputStream stream = TikaInputStream.get(a.getBody());
+          parser.parse(stream, handler, metadata);
+          System.out.println("HANDLER: " + handler.toString());
+
+          /*
+          AutoDetectParser parser = new AutoDetectParser();
+          Metadata metadata = new Metadata();
+          try (InputStream stream = ContentHandlerExample.class.getResourceAsStream("test2.doc")) {
+              parser.parse(stream, handler, metadata);
+              return chunks;
+          }
+          
+          Metadata metadata = new Metadata();
+
+          metadata = new Metadata();
+          String text = parseUsingAutoDetect("tst file", tikaConfig, metadata);
+          System.out.println("Parsed Metadata: ");
+          System.out.println(metadata);
+          System.out.println("Parsed Text: ");
+          System.out.println(text);
+          */
+          /*
+          ByteArrayInputStream myxls = new ByteArrayInputStream(a.getBody());
+          XSSFWorkbook wb = new XSSFWorkbook(myxls);
+          //HSSFWorkbook wb     = new HSSFWorkbook(myxls);
+          try{
+        	  
+        	  
+		    XSSFSheet sheet = wb.getSheetAt(0);
+		    XSSFRow row;
+		    XSSFCell cell;
+
+		    int rows; // No of rows
+		    rows = sheet.getPhysicalNumberOfRows();
+
+		    int cols = 0; // No of columns
+		    int tmp = 0;
+
+		    // This trick ensures that we get the data properly even if it doesn't start from first few rows
+		    for(int i1 = 0; i1 < 10 || i1 < rows; i1++) {
+		        row = sheet.getRow(i1);
+		        if(row != null) {
+		            tmp = sheet.getRow(i1).getPhysicalNumberOfCells();
+		            if(tmp > cols) cols = tmp;
+		        }
+		    }
+
+		    for(int r = 0; r < rows; r++) {
+		        row = sheet.getRow(r);
+		        if(row != null) {
+		            for(int c = 0; c < cols; c++) {
+		                cell = row.getCell((short)c);
+		                if(cell != null) {
+		                    // Your code here
+		                }
+		            }
+		        }
+		    }
+		    
+		} catch(Exception ioe) {
+		    ioe.printStackTrace();
+		}
+		*/
+        }
+      }
+      
+    } catch (Exception e) {
+      e.printStackTrace();
+    }    
+    
+  }
+
+  
+  public static String parseUsingAutoDetect(String filename, TikaConfig tikaConfig,
+          Metadata metadata) throws Exception {
+		System.out.println("Handling using AutoDetectParser: [" + filename + "]");
+		
+		AutoDetectParser parser = new AutoDetectParser(tikaConfig);
+		ContentHandler handler = new BodyContentHandler();
+		TikaInputStream stream = TikaInputStream.get(new File(filename), metadata);
+		parser.parse(stream, handler, metadata, new ParseContext());
+		return handler.toString();
+}
+  
+
+  /*
+  public String parseToStringExample() throws IOException, SAXException, TikaException {
+	    Tika tika = new Tika();
+	    try (InputStream stream = ParsingExample.class.getResourceAsStream("test.doc")) {
+	        return tika.parseToString(stream);
+	    }
+	}
+	*/
   
   // queries and displays the 5 newest contacts
   private static void queryContacts() {

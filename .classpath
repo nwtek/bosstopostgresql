@@ -5,5 +5,10 @@
 	<classpathentry kind="lib" path="/Users/heran004/Documents/workspace-neon/Boss to Postgres/wsc/target/force-wsc-40.1.1.jar"/>
 	<classpathentry kind="lib" path="/Users/heran004/Documents/workspace-neon/Boss to Postgres/wsc/target/enterprise.jar"/>
 	<classpathentry kind="lib" path="/Users/heran004/Documents/workspace-neon/Boss to Postgres/wsc/target/postgresql-42.1.1.jre6.jar"/>
+	<classpathentry kind="lib" path="poi-3.16/poi-3.16.jar"/>
+	<classpathentry kind="lib" path="/Users/heran004/Documents/workspace-neon/Boss to Postgres/poi-3.16/poi-ooxml-3.16.jar"/>
+	<classpathentry kind="lib" path="/Users/heran004/Documents/workspace-neon/Boss to Postgres/poi-3.16/poi-ooxml-schemas-3.16.jar"/>
+	<classpathentry kind="lib" path="/Users/heran004/Documents/workspace-neon/Boss to Postgres/poi-3.16/poi-excelant-3.16.jar"/>
+	<classpathentry kind="lib" path="/Users/heran004/Documents/workspace-neon/Boss to Postgres/tika-app-1.16.jar"/>
 	<classpathentry kind="output" path=""/>
 </classpath>
