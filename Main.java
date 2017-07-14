@@ -70,6 +70,7 @@ static final String PASSWORD = "";
       
       // run the different examples
       queryAttachment();
+
       /*
       queryContacts();
       createAccounts();
@@ -93,21 +94,61 @@ static final String PASSWORD = "";
     try {
        
       // query for the 5 newest contacts      
-      QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, Body, BodyLength, ContentType FROM Attachment Where Id = '00P3800000hJuJE'");
-      if (queryResults.getSize() > 0) {
+      //QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, Body, BodyLength, ContentType FROM Attachment Where Id = '00P5000000Hkop4'");
+        QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, BodyLength, Body, ContentType FROM Attachment Where BodyLength >= 367000 And BodyLength <= 368000 And ContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' And CreatedDate >= 2014-01-01T00:00:00Z And ParentId IN (Select Id From Facility_Lease_Agreement__c)  LIMIT 20");
+        System.out.println("Result size: " + queryResults.getSize() + " Records Length: " + queryResults.getRecords().length);
+    	
+        if (queryResults.getSize() > 0) {
+            boolean done = false;
+            while (done == false) {
+                for (int i=0;i<queryResults.getRecords().length;i++) {
+                    Attachment a = (Attachment)queryResults.getRecords()[i];
+
+                    String attachBody = a.getBody().toString();
+                    //CAN READ THE EXCEL FILE CONTENTS
+                    AutoDetectParser parser = new AutoDetectParser();
+                    Metadata metadata = new Metadata();
+                    BodyContentHandler handler = new BodyContentHandler();
+                    InputStream stream = TikaInputStream.get(a.getBody());
+                    parser.parse(stream, handler, metadata);
+                    String handlerBody = handler.toString();
+                    //System.out.println("HANDLER: " + handlerBody);
+                    
+                    
+                    System.out.println("Record Id: " + a.getId());
+                    System.out.println("BODY HAS ADDRESS: " + handlerBody.contains("Address"));
+                    System.out.println("BODY HAS SKU: " + handlerBody.contains("SKU"));
+                }
+                if (queryResults.isDone() == true) {
+                    done = true;
+                } else {
+                	queryResults = connection.queryMore(queryResults.getQueryLocator());
+                }
+            }
+        } else {
+            System.out.println("No Results");
+        }
+
+        
+        /*
+        if (queryResults.getSize() > 0) {
         for (int i=0;i<queryResults.getRecords().length;i++) {
           // cast the SObject to a strongly-typed Attachment
           Attachment a = (Attachment)queryResults.getRecords()[i];
 
-          //HOW CAN I READ THE EXCEL FILE CONTENTS????
-          System.out.println("BODY: " + a.getBody().toString() );
+          String attachBody = a.getBody().toString();
+
+          System.out.println("BODY: " + attachBody);
+          System.out.println("BODY HAS ADDRESS: " + attachBody.contains("Address"));
 
           //String filename = args[0];
           //TikaConfig tikaConfig = TikaConfig.getDefaultConfig();
-          String contentType = new Tika().detect(a.getBody());
+          String contentType = new Tika().detect(attachBody);
           System.out.println("CONTENT TYPE: " + contentType );
           //OUTPUT: CONTENT TYPE: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
           
+
+          //CAN READ THE EXCEL FILE CONTENTS
           AutoDetectParser parser = new AutoDetectParser();
           Metadata metadata = new Metadata();
           BodyContentHandler handler = new BodyContentHandler();
@@ -115,7 +156,7 @@ static final String PASSWORD = "";
           parser.parse(stream, handler, metadata);
           System.out.println("HANDLER: " + handler.toString());
 
-          /*
+          ///////
           AutoDetectParser parser = new AutoDetectParser();
           Metadata metadata = new Metadata();
           try (InputStream stream = ContentHandlerExample.class.getResourceAsStream("test2.doc")) {
@@ -131,8 +172,8 @@ static final String PASSWORD = "";
           System.out.println(metadata);
           System.out.println("Parsed Text: ");
           System.out.println(text);
-          */
-          /*
+          //////
+          //////
           ByteArrayInputStream myxls = new ByteArrayInputStream(a.getBody());
           XSSFWorkbook wb = new XSSFWorkbook(myxls);
           //HSSFWorkbook wb     = new HSSFWorkbook(myxls);
@@ -173,10 +214,10 @@ static final String PASSWORD = "";
 		} catch(Exception ioe) {
 		    ioe.printStackTrace();
 		}
-		*/
+		/////
         }
       }
-      
+      */
     } catch (Exception e) {
       e.printStackTrace();
     }    
@@ -215,6 +256,8 @@ static final String PASSWORD = "";
       // query for the 5 newest contacts      
       QueryResult queryResults = connection.query("SELECT Id, FirstName, LastName, Account.Name " +
       		"FROM Contact WHERE AccountId != NULL ORDER BY CreatedDate DESC LIMIT 5");
+      System.out.println("Result size: " + queryResults.getSize() + " Records Length: " + queryResults.getRecords().length);
+
       if (queryResults.getSize() > 0) {
         for (int i=0;i<queryResults.getRecords().length;i++) {
           // cast the SObject to a strongly-typed Contact
