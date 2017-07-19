@@ -1,45 +1,26 @@
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
-import java.io.StringWriter;
 import java.util.ArrayList;
 
-import org.apache.commons.io.FileUtils;
-import java.io.IOException;
-
-import org.apache.poi.hssf.usermodel.HSSFCell;
-import org.apache.poi.hssf.usermodel.HSSFRow;
-import org.apache.poi.hssf.usermodel.HSSFSheet;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.poifs.filesystem.POIFSFileSystem;
+import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.xml.sax.ContentHandler;
-import org.xml.sax.SAXException;
-import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFRow;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.apache.tika.Tika;
+
 import org.apache.tika.config.TikaConfig;
-import org.apache.tika.detect.Detector;
 import org.apache.tika.io.TikaInputStream;
-import org.apache.tika.language.LanguageIdentifier;
-import org.apache.tika.language.LanguageProfile;
 import org.apache.tika.metadata.Metadata;
-import org.apache.tika.mime.MediaType;
-import org.apache.tika.mime.MimeTypes;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
-import org.apache.tika.parser.Parser;
 import org.apache.tika.sax.BodyContentHandler;
-import org.apache.tika.sax.ToXMLContentHandler;
 import org.json.JSONObject;
 import org.json.simple.parser.JSONParser;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.sforce.soap.enterprise.Connector;
 import com.sforce.soap.enterprise.DeleteResult;
 import com.sforce.soap.enterprise.EnterpriseConnection;
@@ -51,6 +32,8 @@ import com.sforce.soap.enterprise.sobject.Attachment;
 import com.sforce.soap.enterprise.sobject.Contact;
 import com.sforce.ws.ConnectionException;
 import com.sforce.ws.ConnectorConfig;
+
+import net.arnx.jsonic.JSON;
 
 public class Main { 
   
@@ -132,6 +115,13 @@ static final String PASSWORD = "";
                     int loopLimit =  wb.getNumberOfSheets();
                     System.out.println("NUMBER OF SHEETS: " + loopLimit);
                     
+                    //NEED TO CONVERT TO JSON OBJECT
+                    //CREATE JSON OBJECT FOR EACH CLASSIFIED ATTACHMENT MODEL
+                    //USE GJSON WHEN HAVE AN OBJECT CLASS: Gson g = new Gson(); Player p = g.fromJson(jsonString, Player.class)
+    	    		ArrayList<ObjectHandler.object1Header> rowData = new ArrayList<ObjectHandler.object1Header>();
+
+                    ObjectHandler oHandler = new ObjectHandler();
+                    
             		for (int i1 = 0; i1 < loopLimit; i1++) {
             			Sheet sheet = wb.getSheetAt(i1);
             			if (sheet == null) {
@@ -144,9 +134,58 @@ static final String PASSWORD = "";
             	    		if(row==null || j > 5) {
             	    			continue;
             	    		}
+            	    		
+            	    		if(j > 0){
+            	    			ObjectHandler.object1Header data = oHandler.new object1Header();
 
-                            System.out.println("DATA FOR ROW: " + j);
+                	    		for(int k=0; k<=row.getLastCellNum(); k++) {
+                	    			
+                	    			Cell cell = row.getCell(k);
+                	    			if(cell!=null) {
+                	    				//Object value = cellToObject(cell);
+                                        System.out.println("CELL: " + cell);
+                	    				//hasValues = hasValues || value!=null;
+                	    				//rowData.add(cell);
+                                        if(k == 0){
+                    	    				data.Master = cell; 
+                    	    				System.out.println("MASTER: " + cell);
+                                        }
+                                        else if(k == 1)
+                	    				data.ShipTo = cell;
+                                        else if(k == 2)
+                	    				data.CustomerName = cell;
+                                        else if(k == 3)
+                	    				data.Address = cell;
+                                        else if(k == 4)
+                	    				data.OrderContact = cell;
+                                        else if(k == 5)
+                	    				data.SKU = cell;
+                                        else if(k == 6)
+                	    				data.Model = cell;
+                                        else if(k == 7)
+                	    				data.Quantity = cell;
+                	    			} else {
+                                        //rowData.add(null);
+                                    }
 
+                	    		}
+                	    		
+                	    		//GsonBuilder gsonBuilder = new GsonBuilder();
+                	    		//gsonBuilder.registerTypeAdapter(ObjectHandler.object1Header.class, new BookSerialiser());
+            	    			//String json = gson.toJson(data, ObjectHandler.object1Header.class);
+                	    		//http://www.javacreed.com/gson-serialiser-example/
+                	    		
+                                System.out.println("DATA FOR ROW: " + ToStringBuilder.reflectionToString(data));
+
+            	    			rowData.add(data);
+            	    		}
+            	    		
+                            jsonObject.put(sheet.getSheetName(), rowData); 
+
+
+                            //System.out.println("DATA FOR ROW: " + j);
+
+                            /*
             	    		boolean hasValues = false;
             	    		ArrayList<Object> rowData = new ArrayList<Object>();
             	    		for(int k=0; k<=row.getLastCellNum(); k++) {
@@ -160,6 +199,7 @@ static final String PASSWORD = "";
                                     rowData.add(null);
                                 }
             	    		}
+            	    		*/
                     	}
             			/*
             			ExcelWorksheet tmp = new ExcelWorksheet();
@@ -206,7 +246,8 @@ static final String PASSWORD = "";
                     
                     //JSON TESTS
                     //jsonObject.put("ika", handler.toString()); 
-                    //System.out.println("BODY JSON: " + jsonObject.toString());
+
+                    System.out.println("BODY JSON: " + jsonObject.toString());
                     
                     //METADATA TESTS
                     String[] metadataNames = metadata.names();
@@ -488,4 +529,20 @@ static final String PASSWORD = "";
     
   }
  
+	public class object1Header{
+		public Cell Master;
+		public Cell ShipTo;
+		public Cell CustomerName;
+		public Cell Address;
+		public Cell OrderContact;
+		public Cell SKU;
+		public Cell Model;
+		public Cell Quantity;
+		
+	}
+
+	@Override
+	public String toString() {
+		return "Main []";
+	}
 }
