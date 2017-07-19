@@ -118,9 +118,9 @@ static final String PASSWORD = "";
                     //NEED TO CONVERT TO JSON OBJECT
                     //CREATE JSON OBJECT FOR EACH CLASSIFIED ATTACHMENT MODEL
                     //USE GJSON WHEN HAVE AN OBJECT CLASS: Gson g = new Gson(); Player p = g.fromJson(jsonString, Player.class)
-    	    		ArrayList<ObjectHandler.object1Header> rowData = new ArrayList<ObjectHandler.object1Header>();
+    	    		ArrayList<object1Header> rowData = new ArrayList<object1Header>();
 
-                    ObjectHandler oHandler = new ObjectHandler();
+                    Main oHandler = new Main();
                     
             		for (int i1 = 0; i1 < loopLimit; i1++) {
             			Sheet sheet = wb.getSheetAt(i1);
@@ -136,7 +136,7 @@ static final String PASSWORD = "";
             	    		}
             	    		
             	    		if(j > 0){
-            	    			ObjectHandler.object1Header data = oHandler.new object1Header();
+            	    			object1Header data = oHandler.new object1Header();
 
                 	    		for(int k=0; k<=row.getLastCellNum(); k++) {
                 	    			
