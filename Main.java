@@ -3,7 +3,6 @@ import com.sforce.soap.enterprise.Error;
 import com.sforce.soap.enterprise.sobject.Account;
 import com.sforce.soap.enterprise.sobject.Attachment;
 import com.sforce.soap.enterprise.sobject.Contact;
-import com.sforce.soap.enterprise.sobject.Facility_Lease_Agreement__c;
 import com.sforce.ws.ConnectionException;
 import com.sforce.ws.ConnectorConfig;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -24,8 +23,8 @@ import java.util.ArrayList;
 
 public class Main {
 
-    static final String USERNAME = "";
-    static final String PASSWORD = "";
+    static final String USERNAME = Creds.getUsrName();
+    static final String PASSWORD = Creds.getPassWrd();
     static EnterpriseConnection connection;
 
     public static void main(String[] args) {
@@ -72,6 +71,7 @@ public class Main {
         try {
 
 
+            /*
             QueryResult queryAggreementResults = connection.query("Select Id From Facility_Lease_Agreement__c Where CreatedDate >= 2014-01-01T00:00:00Z And Status__c = 'Installed/Complete' And RecordTypeId = '01250000000UJtZAAW' limit 500");
             System.out.println("Aggreements Size: " + queryAggreementResults.getSize() + " Records Length: " + queryAggreementResults.getRecords().length);
 
@@ -100,10 +100,11 @@ public class Main {
             }
 
             System.out.println("AGG IDS: " + aggIds);
+            */
 
             //QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, Body, BodyLength, ContentType FROM Attachment Where Id = '00P3800000hJuJE'");
-            //QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, BodyLength, Body, ContentType FROM Attachment Where BodyLength >= 300000 And BodyLength <= 400000 And ContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' And CreatedDate >= 2014-01-01T00:00:00Z And ParentId IN (Select Id From Facility_Lease_Agreement__c Where CreatedDate >= 2014-01-01T00:00:00Z)  LIMIT 100");
-            QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, BodyLength, Body, ContentType FROM Attachment Where BodyLength >= 200000 And BodyLength <= 400000 And ContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' And CreatedDate >= 2014-01-01T00:00:00Z And ParentId IN " + aggIds +" LIMIT 500");
+            QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, Body, BodyLength, ContentType FROM Attachment Where BodyLength >= 200000 And BodyLength <= 400000 And ContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' And ParentId IN (Select Id From Facility_Lease_Agreement__c Where CreatedDate >= 2015-01-01T00:00:00Z AND CreatedDate <= 2016-01-01T00:00:00Z And Status__c = 'Installed/Complete' And RecordTypeId = '01250000000UJtZAAW') limit 1000");
+            //QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, BodyLength, Body, ContentType FROM Attachment Where BodyLength >= 200000 And BodyLength <= 400000 And ContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' And CreatedDate >= 2014-01-01T00:00:00Z And ParentId IN " + aggIds +" LIMIT 500");
 
             System.out.println("Attachment Size: " + queryResults.getSize() + " Records Length: " + queryResults.getRecords().length);
 
@@ -120,9 +121,12 @@ public class Main {
                         //CAN READ THE EXCEL FILE CONTENTS
                         AutoDetectParser parser = new AutoDetectParser();
                         //StringWriter strWriter = new StringWriter();
+                        //TIKA LIBRARIES
                         ParseContext context = new ParseContext();
                         Metadata metadata = new Metadata();
-                        BodyContentHandler handler = new BodyContentHandler();
+                        BodyContentHandler handler = new BodyContentHandler(-1);
+
+
                         InputStream stream = TikaInputStream.get(a.getBody());
                         parser.parse(stream, handler, metadata, context);
                         String handlerBody = handler.toString();
@@ -130,8 +134,9 @@ public class Main {
 
                         //HSSF POI LIBRARY
                         Workbook wb = WorkbookFactory.create(stream);
-                        int loopLimit = wb.getNumberOfSheets();
-                        System.out.println("NUMBER OF SHEETS: " + loopLimit);
+                        int numberofsheets = wb.getNumberOfSheets();
+                        //System.out.println("NUMBER OF SHEETS: " + numberofsheets);
+
 
                         //NEED TO CONVERT TO JSON OBJECT
                         //CREATE JSON OBJECT FOR EACH CLASSIFIED ATTACHMENT MODEL
@@ -213,9 +218,10 @@ public class Main {
 
                         ObjectHandler.AttachPropObject attachObject = objHandler.new AttachPropObject();
 
-                        attachObject.attachmentsize = a.getBodyLength();
+                        attachObject.attachmentsize     = a.getBodyLength();
                         attachObject.attachmentparentid = a.getParentId();
-                        attachObject.attachmentid = a.getId();
+                        attachObject.attachmentid       = a.getId();
+                        attachObject.numberofsheets     = numberofsheets;
 
                         for (String name : metadataNames) {
                             if(name == "extended-properties")
@@ -238,10 +244,11 @@ public class Main {
                                 attachObject.content_type = metadata.get(name);
                             else if(name == "Creation-Date")
                                 attachObject.creation_date = metadata.get(name);
-                            else
-                                System.out.println(name + ": " + metadata.get(name));
+                            //else
+                            //    System.out.println(name + ": " + metadata.get(name));
                         }
 
+                        //WRITE TO THE DATABASE
                         System.out.println(PostgreSQLJDBC.attachProperties(attachObject));
                     }
                     if (queryResults.isDone() == true) {

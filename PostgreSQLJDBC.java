@@ -1,17 +1,14 @@
-import java.sql.*;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.Scanner;
 
 public class PostgreSQLJDBC {
 
    public static void main( String args[] ) {
 	   
 	   //parseInsert();
-	   
-	   String response = "Response : " + attachProperties();
+
 	   
 	   /*
 	   Scanner reader = new Scanner(System.in);  // Reading from System.in
@@ -33,7 +30,7 @@ public class PostgreSQLJDBC {
 	   
 	   */
 	   
-   	  System.out.println(response);
+   	  //System.out.println("Response : " + attachProperties());
 
    }
    
@@ -148,9 +145,9 @@ public class PostgreSQLJDBC {
 	         System.exit(0);
 	      }
 	      return "Records created successfully";
-	   }
+   }
    
-   public static String attachProperties() {
+   public static String attachProperties(ObjectHandler.AttachPropObject obj) {
 	      Connection c = null;
 	      Statement stmt = null;
 	      try {
@@ -162,14 +159,60 @@ public class PostgreSQLJDBC {
 
 	         stmt = c.createStatement();
 	         
-	         String sql = "INSERT INTO attachprops(extended_properties, last_modified, dcterms_modified, dcterms_created, "
-	                 + "last_save_date, protected, meta_save_date, application_name,  "
-	                 + "modified, content_type, x_parsed_by, creator, meta_author, meta_creation_date,  "
-	                 + "extended_properties_application, meta_last_author, creation_date,  "
-	                 + "last_author, application_version, author, publisher, dc_publisher,  "
-	                 + "attachmentid, attachmentparentid, attachmentsize)"
-	                 + "VALUES ('test', 'test', 'test', 'test', 'test', true, 'test', 'test', 'test', 'test', 'test', 'test', 'test', 'test'," 
-	                 + "'test', 'test', 'test', 'test', 'test', 'test', 'test', 'test', 'test', 'test', 1001);";
+	         String sql = "INSERT INTO attachprops("
+					 + "extended_properties,"
+					 + "last_modified,"
+					 + "dcterms_modified,"
+					 + "dcterms_created,"
+	                 + "last_save_date,"
+					 + "protected,"
+					 + "meta_save_date,"
+					 + "application_name,"
+					 + "modified,"
+					 + "content_type,"
+					 + "x_parsed_by,"
+					 + "creator,"
+					 + "meta_author,"
+					 + "meta_creation_date,"
+					 + "extended_properties_application,"
+					 + "meta_last_author,"
+					 + "creation_date,"
+					 + "last_author,"
+					 + "application_version,"
+					 + "author,"
+					 + "publisher,"
+					 + "dc_publisher,"
+                     + "attachmentnumberofsheets,"
+	                 + "attachmentid,"
+					 + "attachmentparentid,"
+					 + "attachmentsize)"
+	                 + "VALUES ("
+					 +"'"+obj.extended_properties+"',"
+                     +"'"+obj.last_modified+"',"
+                     +"'"+obj.dcterms_modified+"',"
+                     +"'"+obj.dcterms_created+"',"
+                     +"'"+obj.last_save_date+"',"
+                     +"'"+obj.isprotected+"',"
+                     +"'"+obj.meta_save_date+"',"
+                     +"'"+obj.application_name+"',"
+                     +"'"+obj.modified+"',"
+                     +"'"+obj.content_type+"',"
+                     +"'"+obj.x_parsed_by+"',"
+                     +"'"+obj.creator+"',"
+                     +"'"+obj.meta_author+"',"
+                     +"'"+obj.meta_creation_date+"',"
+                     +"'"+obj.extended_properties_application+"',"
+                     +"'"+obj.meta_last_author+"',"
+                     +"'"+obj.creation_date+"',"
+                     +"'"+obj.last_author+"',"
+                     +"'"+obj.application_version+"',"
+                     +"'"+obj.author+"',"
+                     +"'"+obj.publisher+"',"
+                     +"'"+obj.dc_publisher+"',"
+                     +"'"+obj.numberofsheets+"',"
+                     +"'"+obj.attachmentid+"',"
+                     +"'"+obj.attachmentparentid+"',"
+                     +"'"+obj.attachmentsize+"');";
 	         
 			   stmt.executeUpdate(sql);
 			
@@ -182,7 +225,7 @@ public class PostgreSQLJDBC {
 			}
 	      
 			return "Records created successfully";
-   	}
+   }
    
    public static String dbSelect() {
 	      Connection c = null;
