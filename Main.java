@@ -21,6 +21,8 @@ import java.io.File;
 import java.io.InputStream;
 import java.util.ArrayList;
 
+//import java.util.Date;
+
 public class Main {
 
     static final String USERNAME = Creds.getUsrName();
@@ -103,11 +105,12 @@ public class Main {
             */
 
             //QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, Body, BodyLength, ContentType FROM Attachment Where Id = '00P3800000hJuJE'");
-            QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, Body, BodyLength, ContentType FROM Attachment Where BodyLength >= 200000 And BodyLength <= 400000 And ContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' And ParentId IN (Select Id From Facility_Lease_Agreement__c Where CreatedDate >= 2015-01-01T00:00:00Z AND CreatedDate <= 2016-01-01T00:00:00Z And Status__c = 'Installed/Complete' And RecordTypeId = '01250000000UJtZAAW') limit 1000");
+            QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, Body, BodyLength, ContentType FROM Attachment Where BodyLength >= 200000 And BodyLength <= 400000 And ContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' And ParentId IN (Select Id From Facility_Lease_Agreement__c Where CreatedDate >= 2015-01-01T00:00:00Z AND CreatedDate <= 2016-01-01T00:00:00Z And Status__c = 'Installed/Complete' And RecordTypeId = '01250000000UJtZAAW') limit 10");
             //QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, BodyLength, Body, ContentType FROM Attachment Where BodyLength >= 200000 And BodyLength <= 400000 And ContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' And CreatedDate >= 2014-01-01T00:00:00Z And ParentId IN " + aggIds +" LIMIT 500");
 
             System.out.println("Attachment Size: " + queryResults.getSize() + " Records Length: " + queryResults.getRecords().length);
 
+            ArrayList<ObjectHandler.AttachPropObject> attachmentProps = new ArrayList<>();
             if (queryResults.getSize() > 0) {
                 boolean done = false;
                 while (done == false) {
@@ -218,45 +221,67 @@ public class Main {
 
                         ObjectHandler.AttachPropObject attachObject = objHandler.new AttachPropObject();
 
-                        attachObject.attachmentsize     = a.getBodyLength();
-                        attachObject.attachmentparentid = a.getParentId();
-                        attachObject.attachmentid       = a.getId();
-                        attachObject.numberofsheets     = numberofsheets;
 
+                        attachObject.attachmentparentid                 = Utilities.quote(a.getParentId());
+                        attachObject.attachmentid                       = Utilities.quote(a.getId());
+                        attachObject.attachmentname                     = Utilities.quote(a.getName());
+                        attachObject.numberofsheets                     = numberofsheets;
+                        attachObject.attachmentsize                     = a.getBodyLength();
+
+                        attachObject.date                               = Utilities.dateFormat(metadata.get("date"));
+                        attachObject.extended_properties                = Utilities.quote(metadata.get("extended-properties"));
+                        attachObject.dc_creator                         = Utilities.quote(metadata.get("dc:creator"));
+                        attachObject.publisher                          = Utilities.quote(metadata.get("publisher"));
+                        attachObject.author                             = Utilities.quote(metadata.get("Author"));
+                        attachObject.application_name                   = Utilities.quote(metadata.get("Application-Name"));
+                        attachObject.application_version                = Double.valueOf(metadata.get("Application-Version"));
+                        attachObject.isprotected                        = Boolean.getBoolean(metadata.get("protected"));
+                        attachObject.content_type                       = Utilities.quote(metadata.get("Content-Type"));
+                        attachObject.creation_date                      = Utilities.dateFormat(metadata.get("Creation-Date"));
+                        attachObject.dcterms_created                    = Utilities.dateFormat(metadata.get("dcterms:created"));
+                        attachObject.dc_publisher                       = Utilities.quote(metadata.get("dc:publisher"));
+                        attachObject.extended_properties_application    = Utilities.quote(metadata.get("extended-properties:Application"));
+                        attachObject.last_author                        = Utilities.quote(metadata.get("Last-Author"));
+                        attachObject.extended_properties_company        = Utilities.quote(metadata.get("extended-properties:Company"));
+                        attachObject.last_modified                      = Utilities.dateFormat(metadata.get("Last-Modified"));
+
+                        //2015-01-06T18:27:58Z
+
+                        /*
+                        extended-properties:AppVersion: 12.0000
+                        dcterms:modified: 2014-03-06T22:06:43Z
+                        Last-Save-Date: 2014-03-06T22:06:43Z
+                        meta:save-date: 2014-03-06T22:06:43Z
+                        Application-Name: Microsoft Excel
+                        modified: 2014-03-06T22:06:43Z
+                        X-Parsed-By: org.apache.tika.parser.DefaultParser
+                        creator: marie.cohen
+                        meta:author: marie.cohen
+                        meta:creation-date: 2012-05-02T15:44:45Z
+                        meta:last-author: banba001
+                        Creation-Date: 2012-05-02T15:44:45Z
+                        custom:_NewReviewCycle:
+                        */
+
+                        attachmentProps.add(attachObject);
+
+                        /*
                         for (String name : metadataNames) {
-                            if(name == "extended-properties")
-                                attachObject.extended_properties = metadata.get(name);
-                            else if(name == "dc:creator")
-                                attachObject.dcterms_created = metadata.get(name);
-                            else if(name == "publisher")
-                                attachObject.publisher = metadata.get(name);
-                            else if(name == "Author")
-                                attachObject.author = metadata.get(name);
-                            else if(name == "Application-Name")
-                                attachObject.application_name = metadata.get(name);
-                            else if(name == "Application-Version")
-                                attachObject.application_version = metadata.get(name);
-                            else if(name == "protected")
-                                attachObject.isprotected = Boolean.getBoolean(metadata.get(name));
-                            else if(name == "extended-properties:Company")
-                                attachObject.extended_properties = metadata.get(name);
-                            else if(name == "Content-Type")
-                                attachObject.content_type = metadata.get(name);
-                            else if(name == "Creation-Date")
-                                attachObject.creation_date = metadata.get(name);
-                            //else
-                            //    System.out.println(name + ": " + metadata.get(name));
+                            System.out.println(name + ": " + metadata.get(name));
                         }
+                        */
 
-                        //WRITE TO THE DATABASE
-                        System.out.println(PostgreSQLJDBC.attachProperties(attachObject));
                     }
+
                     if (queryResults.isDone() == true) {
                         done = true;
                     } else {
                         queryResults = connection.queryMore(queryResults.getQueryLocator());
                     }
                 }
+
+                //WRITE TO THE DATABASE
+                System.out.println(PostgreSQLJDBC.attachProperties(attachmentProps));
             } else {
                 System.out.println("No Results");
             }

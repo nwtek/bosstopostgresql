@@ -2,6 +2,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.ArrayList;
 
 public class PostgreSQLJDBC {
 
@@ -147,80 +148,84 @@ public class PostgreSQLJDBC {
 	      return "Records created successfully";
    }
    
-   public static String attachProperties(ObjectHandler.AttachPropObject obj) {
+   public static String attachProperties(ArrayList<ObjectHandler.AttachPropObject> attachmentProps) {
 	      Connection c = null;
 	      Statement stmt = null;
 	      try {
-	         Class.forName("org.postgresql.Driver");
-	         c = DriverManager
-	            .getConnection("jdbc:postgresql://localhost:5432/postgres","postgres", "123");
-	         c.setAutoCommit(false);
-	         System.out.println("Opened database successfully");
+			  Class.forName("org.postgresql.Driver");
+			  c = DriverManager.getConnection("jdbc:postgresql://localhost:5432/db-attachments", "heran004", "123");
+			  c.setAutoCommit(false);
+			  //System.out.println("Opened database successfully");
 
-	         stmt = c.createStatement();
-	         
-	         String sql = "INSERT INTO attachprops("
-					 + "extended_properties,"
-					 + "last_modified,"
-					 + "dcterms_modified,"
-					 + "dcterms_created,"
-	                 + "last_save_date,"
-					 + "protected,"
-					 + "meta_save_date,"
-					 + "application_name,"
-					 + "modified,"
-					 + "content_type,"
-					 + "x_parsed_by,"
-					 + "creator,"
-					 + "meta_author,"
-					 + "meta_creation_date,"
-					 + "extended_properties_application,"
-					 + "meta_last_author,"
-					 + "creation_date,"
-					 + "last_author,"
-					 + "application_version,"
-					 + "author,"
-					 + "publisher,"
-					 + "dc_publisher,"
-                     + "attachmentnumberofsheets,"
-	                 + "attachmentid,"
-					 + "attachmentparentid,"
-					 + "attachmentsize)"
-	                 + "VALUES ("
-					 +"'"+obj.extended_properties+"',"
-                     +"'"+obj.last_modified+"',"
-                     +"'"+obj.dcterms_modified+"',"
-                     +"'"+obj.dcterms_created+"',"
-                     +"'"+obj.last_save_date+"',"
-                     +"'"+obj.isprotected+"',"
-                     +"'"+obj.meta_save_date+"',"
-                     +"'"+obj.application_name+"',"
-                     +"'"+obj.modified+"',"
-                     +"'"+obj.content_type+"',"
-                     +"'"+obj.x_parsed_by+"',"
-                     +"'"+obj.creator+"',"
-                     +"'"+obj.meta_author+"',"
-                     +"'"+obj.meta_creation_date+"',"
-                     +"'"+obj.extended_properties_application+"',"
-                     +"'"+obj.meta_last_author+"',"
-                     +"'"+obj.creation_date+"',"
-                     +"'"+obj.last_author+"',"
-                     +"'"+obj.application_version+"',"
-                     +"'"+obj.author+"',"
-                     +"'"+obj.publisher+"',"
-                     +"'"+obj.dc_publisher+"',"
-                     +"'"+obj.numberofsheets+"',"
-                     +"'"+obj.attachmentid+"',"
-                     +"'"+obj.attachmentparentid+"',"
-                     +"'"+obj.attachmentsize+"');";
-	         
-			   stmt.executeUpdate(sql);
+			  stmt = c.createStatement();
+
+			  for (ObjectHandler.AttachPropObject obj: attachmentProps) {
+			  String sql = "INSERT INTO attachment_classification("
+					  + "attachment_id,"
+					  + "extended_properties_company,"
+					  + "last_modified,"
+					  + "dcterms_modified,"
+					  + "dcterms_created,"
+					  + "last_save_date,"
+					  + "protected,"
+					  + "meta_save_date,"
+					  + "application_name,"
+					  + "modified,"
+					  + "content_type,"
+					  + "x_parsed_by,"
+					  + "creator,"
+					  + "meta_author,"
+					  + "meta_creation_date,"
+					  + "extended_properties_application,"
+					  + "meta_last_author,"
+					  + "creation_date,"
+					  + "last_author,"
+					  + "application_version,"
+					  + "author,"
+					  + "publisher,"
+					  + "dc_publisher,"
+					  + "attachment_number_of_sheets,"
+					  + "parent_id,"
+					  + "attachment_size)"
+					  + "VALUES ("
+					  + obj.attachmentid + ","
+					  + obj.extended_properties + ","
+					  + obj.last_modified + ","
+					  + obj.dcterms_modified + ","
+					  + obj.dcterms_created + ","
+					  + obj.last_save_date + ","
+					  + obj.isprotected + ","
+					  + obj.meta_save_date + ","
+					  + obj.application_name + ","
+					  + obj.modified + ","
+					  + obj.content_type + ","
+					  + obj.x_parsed_by + ","
+					  + obj.creator + ","
+					  + obj.meta_author + ","
+					  + obj.meta_creation_date + ","
+					  + obj.extended_properties_application + ","
+					  + obj.meta_last_author + ","
+					  + obj.creation_date + ","
+					  + obj.last_author + ","
+					  + obj.application_version + ","
+					  + obj.author + ","
+					  + obj.publisher + ","
+					  + obj.dc_publisher + ","
+					  + obj.numberofsheets + ","
+					  + obj.attachmentparentid + ","
+					  + obj.attachmentsize + ");";
+
+					stmt.addBatch(sql);
+			  }
+			   //stmt.executeUpdate(sql);
+			   stmt.executeBatch();
 			
 			   stmt.close();
 			   c.commit();
 			   c.close();
+
 			} catch (Exception e) {
-			   System.err.println( e.getClass().getName()+": "+ e.getMessage() );
+			   System.err.println("ERROR:" + e.getClass().getName()+" : "+ e.getMessage() );
 			   System.exit(0);
 			}
 	      
