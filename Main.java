@@ -3,8 +3,6 @@ import com.sforce.soap.enterprise.Error;
 import com.sforce.soap.enterprise.sobject.Account;
 import com.sforce.soap.enterprise.sobject.Attachment;
 import com.sforce.soap.enterprise.sobject.Contact;
-import com.sforce.ws.ConnectionException;
-import com.sforce.ws.ConnectorConfig;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.tika.config.TikaConfig;
@@ -30,13 +28,14 @@ public class Main {
     static EnterpriseConnection connection;
 
     public static void main(String[] args) {
-
+/*****
         ConnectorConfig config = new ConnectorConfig();
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
+ *****/
         //config.setTraceMessage(true);
 
-        try {
+        /****try {
 
             connection = Connector.newConnection(config);
 
@@ -45,9 +44,12 @@ public class Main {
             System.out.println("Service EndPoint: " + config.getServiceEndpoint());
             System.out.println("Username: " + config.getUsername());
             System.out.println("SessionId: " + config.getSessionId());
+            *****/
+
+            System.out.println("Parsing Attachment..." + BossParsingHandler.parseResults());
 
             // run the different examples
-            queryAttachment();
+            //queryAttachment();
 
       /*
       queryContacts();
@@ -57,9 +59,11 @@ public class Main {
       */
 
 
+      /****
         } catch (ConnectionException e1) {
             e1.printStackTrace();
         }
+       ****/
 
     }
 
@@ -72,221 +76,109 @@ public class Main {
 
         try {
 
+            for(int m = 1; m< 6; m++) {
+                int month = m;
+                int nextmonth = (m + 1);
 
-            /*
-            QueryResult queryAggreementResults = connection.query("Select Id From Facility_Lease_Agreement__c Where CreatedDate >= 2014-01-01T00:00:00Z And Status__c = 'Installed/Complete' And RecordTypeId = '01250000000UJtZAAW' limit 500");
-            System.out.println("Aggreements Size: " + queryAggreementResults.getSize() + " Records Length: " + queryAggreementResults.getRecords().length);
+                //QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, Body, BodyLength, ContentType FROM Attachment Where Id = '00P3800000hJuJE'");
+                //QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, Body, BodyLength, ContentType FROM Attachment Where BodyLength >= 200000 And BodyLength <= 400000 And ContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' And ParentId IN (Select Id From Facility_Lease_Agreement__c Where CreatedDate >= 2015-01-01T00:00:00Z AND CreatedDate <= 2016-01-01T00:00:00Z And Status__c = 'Installed/Complete' And RecordTypeId = '01250000000UJtZAAW') limit 10");
+                QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, Body, BodyLength, ContentType FROM Attachment Where BodyLength >= 200000 And BodyLength <= 400000 And ContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' And ParentId IN (Select Id From Facility_Lease_Agreement__c Where CreatedDate >= 2015-0" + month + "-01T00:00:00Z AND CreatedDate <= 2015-0" + nextmonth + "-01T00:00:00Z)");
+                //QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, BodyLength, Body, ContentType FROM Attachment Where BodyLength >= 200000 And BodyLength <= 400000 And ContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' And CreatedDate >= 2014-01-01T00:00:00Z And ParentId IN " + aggIds +" LIMIT 500");
 
-            //ArrayList<String> aggreementIds = new ArrayList<String>();
-            String aggIds = new String();
-            if (queryAggreementResults.getSize() > 0) {
-                boolean done = false;
-                while (done == false) {
-                    for (int i = 0; i < queryAggreementResults.getRecords().length; i++) {
-                        Facility_Lease_Agreement__c agreement = (Facility_Lease_Agreement__c) queryAggreementResults.getRecords()[i];
-                        //aggreementIds.add("'"+agreement.getId()+"'");
+                System.out.println("MONTH: " + month + " Result Count: " + queryResults.getSize());
 
-                        if(aggIds.isEmpty())
-                            aggIds = "('"+agreement.getId()+"'";
-                        else
-                            aggIds = aggIds + ",'"+agreement.getId()+"'";
-                    }
+                ArrayList<ObjectHandler.AttachPropObject> attachmentProps = new ArrayList<>();
+                if (queryResults.getSize() > 0) {
+                    boolean done = false;
+                    while (done == false) {
+                        for (int i = 0; i < queryResults.getRecords().length; i++) {
 
-                    if (queryAggreementResults.isDone() == true) {
-                        done = true;
-                        aggIds = aggIds + ")";
-                    } else {
-                        queryAggreementResults = connection.queryMore(queryAggreementResults.getQueryLocator());
-                    }
-                }
-            }
+                            JSONObject jsonObject = new JSONObject();
 
-            System.out.println("AGG IDS: " + aggIds);
-            */
+                            Attachment a = (Attachment) queryResults.getRecords()[i];
 
-            //QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, Body, BodyLength, ContentType FROM Attachment Where Id = '00P3800000hJuJE'");
-            QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, Body, BodyLength, ContentType FROM Attachment Where BodyLength >= 200000 And BodyLength <= 400000 And ContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' And ParentId IN (Select Id From Facility_Lease_Agreement__c Where CreatedDate >= 2015-01-01T00:00:00Z AND CreatedDate <= 2016-01-01T00:00:00Z And Status__c = 'Installed/Complete' And RecordTypeId = '01250000000UJtZAAW') limit 10");
-            //QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, BodyLength, Body, ContentType FROM Attachment Where BodyLength >= 200000 And BodyLength <= 400000 And ContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' And CreatedDate >= 2014-01-01T00:00:00Z And ParentId IN " + aggIds +" LIMIT 500");
-
-            System.out.println("Attachment Size: " + queryResults.getSize() + " Records Length: " + queryResults.getRecords().length);
-
-            ArrayList<ObjectHandler.AttachPropObject> attachmentProps = new ArrayList<>();
-            if (queryResults.getSize() > 0) {
-                boolean done = false;
-                while (done == false) {
-                    for (int i = 0; i < queryResults.getRecords().length; i++) {
-
-                        JSONObject jsonObject = new JSONObject();
-
-                        Attachment a = (Attachment) queryResults.getRecords()[i];
-
-                        //String attachBody = a.getBody().toString();
-                        //CAN READ THE EXCEL FILE CONTENTS
-                        AutoDetectParser parser = new AutoDetectParser();
-                        //StringWriter strWriter = new StringWriter();
-                        //TIKA LIBRARIES
-                        ParseContext context = new ParseContext();
-                        Metadata metadata = new Metadata();
-                        BodyContentHandler handler = new BodyContentHandler(-1);
+                            //String attachBody = a.getBody().toString();
+                            //CAN READ THE EXCEL FILE CONTENTS
+                            AutoDetectParser parser = new AutoDetectParser();
+                            //StringWriter strWriter = new StringWriter();
+                            //TIKA LIBRARIES
+                            ParseContext context = new ParseContext();
+                            Metadata metadata = new Metadata();
+                            BodyContentHandler handler = new BodyContentHandler(-1);
 
 
-                        InputStream stream = TikaInputStream.get(a.getBody());
-                        parser.parse(stream, handler, metadata, context);
-                        String handlerBody = handler.toString();
-                        //System.out.println("HANDLER: " + handlerBody);
+                            InputStream stream = TikaInputStream.get(a.getBody());
+                            parser.parse(stream, handler, metadata, context);
+                            String handlerBody = handler.toString();
+                            //System.out.println("HANDLER: " + handlerBody);
 
-                        //HSSF POI LIBRARY
-                        Workbook wb = WorkbookFactory.create(stream);
-                        int numberofsheets = wb.getNumberOfSheets();
-                        //System.out.println("NUMBER OF SHEETS: " + numberofsheets);
+                            //HSSF POI LIBRARY
+                            Workbook wb = WorkbookFactory.create(stream);
+                            int numberofsheets = wb.getNumberOfSheets();
+                            //System.out.println("NUMBER OF SHEETS: " + numberofsheets);
 
 
-                        //NEED TO CONVERT TO JSON OBJECT
-                        //CREATE JSON OBJECT FOR EACH CLASSIFIED ATTACHMENT MODEL
-                        //USE GJSON WHEN HAVE AN OBJECT CLASS: Gson g = new Gson(); Player p = g.fromJson(jsonString, Player.class)
-                        ArrayList<ObjectHandler.ShipToObject> rowData = new ArrayList<ObjectHandler.ShipToObject>();
+                            /*
+                            TODO:
+                            REMOVE BODY FROM THE CLASSIFICATION QUERY TO SPEED UP (ONLY USED FOR SHEET COUNT)
+                            CREATE PARSER FOR EACH SPREADSHEET
+                            VERIFY ADDRESSES PULLED FROM SPREADSHEET
+                            NEED TO CONVERT TO JSON OBJECT
+                            CREATE JSON OBJECT FOR EACH CLASSIFIED ATTACHMENT MODEL
+                            USE GJSON WHEN HAVE AN OBJECT CLASS: Gson g = new Gson(); Player p = g.fromJson(jsonString, Player.class)
+                            */
+                            ArrayList<ObjectHandler.ShipToObject> rowData = new ArrayList<ObjectHandler.ShipToObject>();
 
-                        ObjectHandler objHandler = new ObjectHandler();
-/*
-                        for (int i1 = 0; i1 < loopLimit; i1++) {
-                            Sheet sheet = wb.getSheetAt(i1);
-                            if (sheet == null) {
-                                continue;
-                            }
-                            System.out.println("SHEET NAME: " + sheet.getSheetName());
+                            ObjectHandler objHandler = new ObjectHandler();
 
-                            for (int j = sheet.getFirstRowNum(); j <= sheet.getLastRowNum(); j++) {
-                                Row row = sheet.getRow(j);
-                                if (row == null || j > 5) {
-                                    continue;
-                                }
+                            //METADATA TESTS
+                            String[] metadataNames = metadata.names();
 
-                                if (j > 0) {
-                                    ObjectHandler.ShipToObject data = objHandler.new ShipToObject();
+                            ObjectHandler.AttachPropObject attachObject = objHandler.new AttachPropObject();
 
-                                    for (int k = 0; k <= row.getLastCellNum(); k++) {
+                            attachObject.attachmentparentid             = Utilities.quote(a.getParentId());
+                            attachObject.attachmentid                   = Utilities.quote(a.getId());
+                            attachObject.attachmentname                 = Utilities.quote(a.getName());
+                            attachObject.numberofsheets                 = numberofsheets;
+                            attachObject.attachmentsize                 = a.getBodyLength();
 
-                                        Cell cell = row.getCell(k);
-                                        if (cell != null) {
-                                            //Object value = cellToObject(cell);
-                                            System.out.println("CELL: " + cell);
-                                            //hasValues = hasValues || value!=null;
-                                            //rowData.add(cell);
-                                            if (k == 0) {
-                                                data.Master = cell;
-                                                System.out.println("MASTER: " + cell);
-                                            } else if (k == 1)
-                                                data.ShipTo = cell;
-                                            else if (k == 2)
-                                                data.CustomerName = cell;
-                                            else if (k == 3)
-                                                data.Address = cell;
-                                            else if (k == 4)
-                                                data.OrderContact = cell;
-                                            else if (k == 5)
-                                                data.SKU = cell;
-                                            else if (k == 6)
-                                                data.Model = cell;
-                                            else if (k == 7)
-                                                data.Quantity = cell;
-                                        } else {
-                                            //rowData.add(null);
-                                        }
-                                    }
-                                    //GsonBuilder gsonBuilder = new GsonBuilder();
-                                    //gsonBuilder.registerTypeAdapter(ObjectHandler.object1Header.class, new BookSerialiser());
-                                    //String json = gson.toJson(data, ObjectHandler.object1Header.class);
-                                    //http://www.javacreed.com/gson-serialiser-example/
+                            attachObject.date                           = Utilities.dateFormat(metadata.get("date"));
+                            attachObject.extended_properties            = Utilities.quote(metadata.get("extended-properties"));
+                            attachObject.dc_creator                     = Utilities.quote(metadata.get("dc:creator"));
+                            attachObject.publisher                      = Utilities.quote(metadata.get("publisher"));
+                            attachObject.author                         = Utilities.quote(metadata.get("Author"));
+                            attachObject.application_name               = Utilities.quote(metadata.get("Application-Name"));
+                            attachObject.application_version            = Double.valueOf(metadata.get("Application-Version"));
+                            attachObject.isprotected                    = Boolean.getBoolean(metadata.get("protected"));
+                            attachObject.content_type                   = Utilities.quote(metadata.get("Content-Type"));
+                            attachObject.creation_date                  = Utilities.dateFormat(metadata.get("Creation-Date"));
+                            attachObject.dcterms_created                = Utilities.dateFormat(metadata.get("dcterms:created"));
+                            attachObject.dc_publisher                   = Utilities.quote(metadata.get("dc:publisher"));
+                            attachObject.extended_properties_application = Utilities.quote(metadata.get("extended-properties:Application"));
+                            attachObject.last_author                    = Utilities.quote(metadata.get("Last-Author"));
+                            attachObject.extended_properties_company    = Utilities.quote(metadata.get("extended-properties:Company"));
+                            attachObject.last_modified                  = Utilities.dateFormat(metadata.get("Last-Modified"));
+                            attachObject.meta_save_date                 = Utilities.dateFormat(metadata.get("meta:save-date"));
 
-                                    System.out.println("DATA FOR ROW: " + ToStringBuilder.reflectionToString(data));
+                            attachmentProps.add(attachObject);
 
-                                    rowData.add(data);
-                                }
-                                jsonObject.put(sheet.getSheetName(), rowData);
-                                //System.out.println("DATA FOR ROW: " + j);
-                            }
                         }
-                        System.out.println("Record Id: " + a.getId());
-                        System.out.println("BODY HAS ADDRESS: " + handlerBody.contains("Address"));
-                        System.out.println("BODY HAS SKU: " + handlerBody.contains("SKU"));
-                        //JSON TESTS
-                        //jsonObject.put("ika", handler.toString());
 
-                        System.out.println("BODY JSON: " + jsonObject.toString());
-
-*/
-
-                        //METADATA TESTS
-                        String[] metadataNames = metadata.names();
-
-                        ObjectHandler.AttachPropObject attachObject = objHandler.new AttachPropObject();
-
-
-                        attachObject.attachmentparentid                 = Utilities.quote(a.getParentId());
-                        attachObject.attachmentid                       = Utilities.quote(a.getId());
-                        attachObject.attachmentname                     = Utilities.quote(a.getName());
-                        attachObject.numberofsheets                     = numberofsheets;
-                        attachObject.attachmentsize                     = a.getBodyLength();
-
-                        attachObject.date                               = Utilities.dateFormat(metadata.get("date"));
-                        attachObject.extended_properties                = Utilities.quote(metadata.get("extended-properties"));
-                        attachObject.dc_creator                         = Utilities.quote(metadata.get("dc:creator"));
-                        attachObject.publisher                          = Utilities.quote(metadata.get("publisher"));
-                        attachObject.author                             = Utilities.quote(metadata.get("Author"));
-                        attachObject.application_name                   = Utilities.quote(metadata.get("Application-Name"));
-                        attachObject.application_version                = Double.valueOf(metadata.get("Application-Version"));
-                        attachObject.isprotected                        = Boolean.getBoolean(metadata.get("protected"));
-                        attachObject.content_type                       = Utilities.quote(metadata.get("Content-Type"));
-                        attachObject.creation_date                      = Utilities.dateFormat(metadata.get("Creation-Date"));
-                        attachObject.dcterms_created                    = Utilities.dateFormat(metadata.get("dcterms:created"));
-                        attachObject.dc_publisher                       = Utilities.quote(metadata.get("dc:publisher"));
-                        attachObject.extended_properties_application    = Utilities.quote(metadata.get("extended-properties:Application"));
-                        attachObject.last_author                        = Utilities.quote(metadata.get("Last-Author"));
-                        attachObject.extended_properties_company        = Utilities.quote(metadata.get("extended-properties:Company"));
-                        attachObject.last_modified                      = Utilities.dateFormat(metadata.get("Last-Modified"));
-
-                        //2015-01-06T18:27:58Z
-
-                        /*
-                        extended-properties:AppVersion: 12.0000
-                        dcterms:modified: 2014-03-06T22:06:43Z
-                        Last-Save-Date: 2014-03-06T22:06:43Z
-                        meta:save-date: 2014-03-06T22:06:43Z
-                        Application-Name: Microsoft Excel
-                        modified: 2014-03-06T22:06:43Z
-                        X-Parsed-By: org.apache.tika.parser.DefaultParser
-                        creator: marie.cohen
-                        meta:author: marie.cohen
-                        meta:creation-date: 2012-05-02T15:44:45Z
-                        meta:last-author: banba001
-                        Creation-Date: 2012-05-02T15:44:45Z
-                        custom:_NewReviewCycle:
-                        */
-
-                        attachmentProps.add(attachObject);
-
-                        /*
-                        for (String name : metadataNames) {
-                            System.out.println(name + ": " + metadata.get(name));
+                        if (queryResults.isDone() == true) {
+                            done = true;
+                        } else {
+                            queryResults = connection.queryMore(queryResults.getQueryLocator());
                         }
-                        */
-
                     }
 
-                    if (queryResults.isDone() == true) {
-                        done = true;
-                    } else {
-                        queryResults = connection.queryMore(queryResults.getQueryLocator());
-                    }
+                    //WRITE TO THE DATABASE
+                    System.out.println(PostgreSQLJDBC.attachProperties(attachmentProps));
+
+                } else {
+                    System.out.println("No Results");
                 }
 
-                //WRITE TO THE DATABASE
-                System.out.println(PostgreSQLJDBC.attachProperties(attachmentProps));
-            } else {
-                System.out.println("No Results");
             }
-
-
         } catch (Exception e) {
             e.printStackTrace();
         }

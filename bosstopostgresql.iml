@@ -16,5 +16,6 @@
     <orderEntry type="library" name="postgresql-42.1.1.jre6" level="project" />
     <orderEntry type="library" name="jackson-core-asl-1.9.13" level="project" />
     <orderEntry type="library" name="jackson-mapper-asl-1.9.13" level="project" />
+    <orderEntry type="library" name="mongo-java-driver-3.5.0" level="project" />
   </component>
 </module>

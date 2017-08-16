@@ -161,6 +161,7 @@ public class PostgreSQLJDBC {
 
 			  for (ObjectHandler.AttachPropObject obj: attachmentProps) {
 			  String sql = "INSERT INTO attachment_classification("
+					  + "attachment_name,"
 					  + "attachment_id,"
 					  + "extended_properties_company,"
 					  + "last_modified,"
@@ -188,6 +189,7 @@ public class PostgreSQLJDBC {
 					  + "parent_id,"
 					  + "attachment_size)"
 					  + "VALUES ("
+					  + obj.attachmentname + ","
 					  + obj.attachmentid + ","
 					  + obj.extended_properties + ","
 					  + obj.last_modified + ","
