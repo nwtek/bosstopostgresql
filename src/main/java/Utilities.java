@@ -1,6 +1,7 @@
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
 public class Utilities{
 
     public static String dateFormat(String dateString) {
@@ -13,7 +14,8 @@ public class Utilities{
 
             if(!dateString.isEmpty()){
                 dateFormated = parseFormat.parse(dateString);
-                returnDateFormatedString = "'" + returnFormat.format(dateFormated) + "'";
+                //returnDateFormatedString = "'" + returnFormat.format(dateFormated) + "'";
+                returnDateFormatedString = returnFormat.format(dateFormated);
             }
 
         }catch(Exception e){
@@ -34,5 +36,6 @@ public class Utilities{
 
         return quoted;
     }
+
 }
 

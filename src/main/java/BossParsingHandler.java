@@ -11,7 +11,6 @@ import org.apache.tika.sax.BodyContentHandler;
 import org.json.JSONObject;
 import org.json.simple.parser.JSONParser;
 
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.*;
 
@@ -111,7 +110,7 @@ public class BossParsingHandler {
 
     }
 
-    public static String parseResults(){
+    public static String parseResults(Attachment a, ObjectHandler.AttachPropObject aProps){
         try{
                 JSONObject jsonObject = new JSONObject();
                 BossParsingHandler innerClass = new BossParsingHandler();
@@ -125,9 +124,16 @@ public class BossParsingHandler {
                 ParseContext context = new ParseContext();
                 Metadata metadata = new Metadata();
                 BodyContentHandler handler = new BodyContentHandler();
-                InputStream fileStream = new FileInputStream("/Users/heran004/Desktop/COFFEE ORDER TRACKING.xlsx");
-                //InputStream stream = TikaInputStream.get(a.getBody());
-                InputStream stream = TikaInputStream.get(fileStream);
+
+                /*
+                    LOCAL FILE
+                    InputStream fileStream = new FileInputStream("/Users/heran004/Desktop/COFFEE ORDER TRACKING.xlsx");
+                    InputStream stream = TikaInputStream.get(fileStream);
+                 */
+
+                /* ATTACHMENT */
+                InputStream stream = TikaInputStream.get(a.getBody());
+
                 parser.parse(stream, handler, metadata, context);
                 String handlerBody = handler.toString();
                 //System.out.println("HANDLER: " + handlerBody);
@@ -149,8 +155,6 @@ public class BossParsingHandler {
                     System.out.println("*****SHEET NAME: " + sheet.getSheetName());
 
                     Map<Integer, String>            keys            = new HashMap<Integer, String>();
-                    Map<String, ArrayList<String>>  mapValuesArray  = new HashMap<String, ArrayList<String>>();
-                    Map<String, String>             mapSingleValue  = new HashMap<String, String>();
 
                     int consecutiveBreaks = 0;
 
@@ -161,10 +165,23 @@ public class BossParsingHandler {
                         if(consecutiveBreaks > 1)
                             continue;
 
-                        BossParsingHandler.Site newSite = innerClass.new Site();
-                        newSite.site_number = s;
+                        Map<String, ArrayList<String>> mapValuesArray  = new HashMap<String, ArrayList<String>>();
+                        Map<String, String>             mapSingleValue  = new HashMap<String, String>();
 
-                        System.out.println("DATA FOR ROW: " + r);
+                        BossParsingHandler.Site         newSite = innerClass.new Site();
+
+                        newSite.site_number                     = s;
+                        newSite.attachment_props_sheet_name     = sheet.getSheetName();
+                        newSite.attachment_props_sheet_number   = s+1;
+                        newSite.attachment_created_date         = aProps.creation_date;
+                        newSite.attachment_id                   = aProps.attachmentid;
+                        newSite.attachment_parent_id            = aProps.attachmentparentid;
+                        newSite.attachment_name                 = aProps.application_name;
+                        newSite.attachment_props_author         = aProps.author;
+                        newSite.attachment_props_publisher      = aProps.publisher;
+                        newSite.attachment_props_sheet_count    = aProps.numberofsheets;
+
+                        //newSite.attachment_created_date = a.getCreatedDate();
 
                         //c = CELL
                         for(int c=0; c<=row.getLastCellNum(); c++) {
@@ -172,11 +189,9 @@ public class BossParsingHandler {
                             String cellValue    = "";
                             if(cell != null) {
                                 cellValue = cell.toString().trim();
-                                //System.out.println("CELL: " + cell + " ARRAY FORMULA GROUP: " + cell.isPartOfArrayFormulaGroup());
                             }
 
                             if(c==0){
-                                //System.out.println("---THIS IS THE FIRST COLUMN FOR ROW: " + j + " EMPTY: " + cellValue.isEmpty());
                                 //SHOULD USE REGEX TO DETECT EMPTY FORMULA ('Order Entry sheet'!X2)
                                 if(cellValue.isEmpty() || cellValue.contains("'!")){
                                     consecutiveBreaks ++;
@@ -190,19 +205,6 @@ public class BossParsingHandler {
                             }
                             else{
                                 if(!mapSingleValue.containsKey(keys.get(c)) && !mapValuesArray.containsKey(keys.get(c))){
-                                    /*
-                                    when detect that a key exists, append to an array string
-                                    determine if gson will process as array or string
-                                    could keep as is and build in delimination (/,carriage returns)
-
-                                     */
-                                    /*
-                                    ArrayList<String> newArray = new ArrayList<String>();
-                                    //DELIMINATE VALUE AND PROCESS AS AN ARRAY OF VALUES
-                                    newArray.add(cellValue);
-
-                                    mapValue.put(keys.get(c), newArray);
-                                    */
 
                                     if(!cellValue.contains("'!"))
                                     mapSingleValue.put(keys.get(c), cellValue);
@@ -225,62 +227,23 @@ public class BossParsingHandler {
                         }
 
                         if(!mapValuesArray.isEmpty()){
-
                             Gson gson = new Gson();
 
-                            JsonElement jsonElement = gson.toJsonTree(mapSingleValue);
-                            JsonElement jsonElement2 = gson.toJsonTree(mapValuesArray);
+                            JsonElement objectCore          = gson.toJsonTree(newSite);
+                            JsonElement objectFieldValues   = gson.toJsonTree(mapSingleValue);
+                            JsonElement objectRelatedLists  = gson.toJsonTree(mapValuesArray);
 
-                            jsonElement.getAsJsonObject().add("Assets", jsonElement2);
-                            String json = gson.toJson(jsonElement);
+                            objectCore.getAsJsonObject().add("Sheet Data", objectFieldValues);
+                            objectFieldValues.getAsJsonObject().add("Sheet Arrays", objectRelatedLists);
+
+                            String json = gson.toJson(objectCore);
 
                             System.out.println("LOGGING TO MONGO: " + MongoHandler.mongo("classification_one", json));
                         }
 
-
                     }
 
-                    /*
-                    fields_and_values f_v = innerClass.new fields_and_values();
-                    for(int i : keys.keySet()){
-                        String key = keys.get(i);
-                        f_v.field_name = key;
-                        if(mapValuesArray.get(key) != null) {
-                            for (String value : mapValuesArray.get(key)) {
-                                f_v.field_value = value;
-                                //System.out.println("KEY: " + key + " VALUE: " + value);
-                            }
-                        }
-
-                        Gson gson = new Gson();
-                        String json = gson.toJson(f_v);
-                        System.out.println("JSON: " + json);
-                    }
-                    */
-
                 }
-
-                /*
-                Gson gson = new Gson();
-                String json = gson.toJson(listSites);
-                System.out.println("JSON: " + json);
-                */
-
-                //System.out.println("Record Id: " + a.getId());
-                //System.out.println("BODY HAS ADDRESS: " + handlerBody.contains("Address"));
-                //System.out.println("BODY HAS SKU: " + handlerBody.contains("SKU"));
-
-                //JSON TESTS
-                //jsonObject.put("ika", handler.toString());
-                //System.out.println("BODY JSON: " + jsonObject.toString());
-
-                //METADATA TESTS
-                /*
-                String[] metadataNames = metadata.names();
-                for(String name : metadataNames) {
-                    System.out.println(name + ": " + metadata.get(name));
-                }
-                */
 
     } catch (Exception e) {
             System.out.println("There was an error: " + e.getMessage());
@@ -291,7 +254,18 @@ public class BossParsingHandler {
 }
 
 public class Site{
-    int     site_number;
+    Integer site_number;
+    String  classification;
+    String  attachment_name;
+    String  attachment_id;
+    String  attachment_parent_id;
+    String  attachment_created_date;
+    String  attachment_props_author;
+    String  attachment_props_publisher;
+    Integer attachment_props_sheet_count;
+    Integer attachment_props_sheet_number;
+    String  attachment_props_sheet_name;
+
     Map<String, String> field_and_value;
     Map<String, ArrayList<String>> field_and_array;
 }

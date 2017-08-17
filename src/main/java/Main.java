@@ -3,6 +3,8 @@ import com.sforce.soap.enterprise.Error;
 import com.sforce.soap.enterprise.sobject.Account;
 import com.sforce.soap.enterprise.sobject.Attachment;
 import com.sforce.soap.enterprise.sobject.Contact;
+import com.sforce.ws.ConnectionException;
+import com.sforce.ws.ConnectorConfig;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.tika.config.TikaConfig;
@@ -15,9 +17,12 @@ import org.json.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.xml.sax.ContentHandler;
 
-import java.io.File;
-import java.io.InputStream;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Map;
 
 //import java.util.Date;
 
@@ -28,17 +33,18 @@ public class Main {
     static EnterpriseConnection connection;
 
     public static void main(String[] args) {
-/*****
+
         ConnectorConfig config = new ConnectorConfig();
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
- *****/
+
         //config.setTraceMessage(true);
 
-        /****try {
+        try {
 
             connection = Connector.newConnection(config);
 
+            /****
             // display some current settings
             System.out.println("Auth EndPoint: " + config.getAuthEndpoint());
             System.out.println("Service EndPoint: " + config.getServiceEndpoint());
@@ -46,24 +52,26 @@ public class Main {
             System.out.println("SessionId: " + config.getSessionId());
             *****/
 
-            System.out.println("Parsing Attachment..." + BossParsingHandler.parseResults());
+            /*****System.out.println("Parsing Attachment..." + BossParsingHandler.parseResults());*****/
 
             // run the different examples
             //queryAttachment();
 
-      /*
-      queryContacts();
-      createAccounts();
-      updateAccounts();
-      deleteAccounts();
-      */
+            //perform address validation
+            //System.out.println("RESPONSE: " + addressValidation());
 
+          /*
+          queryContacts();
+          createAccounts();
+          updateAccounts();
+          deleteAccounts();
+          */
 
-      /****
         } catch (ConnectionException e1) {
-            e1.printStackTrace();
+
+            System.out.println("ERROR: INVALID CREDENTIALS");
+            //e1.printStackTrace();
         }
-       ****/
 
     }
 
@@ -82,7 +90,7 @@ public class Main {
 
                 //QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, Body, BodyLength, ContentType FROM Attachment Where Id = '00P3800000hJuJE'");
                 //QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, Body, BodyLength, ContentType FROM Attachment Where BodyLength >= 200000 And BodyLength <= 400000 And ContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' And ParentId IN (Select Id From Facility_Lease_Agreement__c Where CreatedDate >= 2015-01-01T00:00:00Z AND CreatedDate <= 2016-01-01T00:00:00Z And Status__c = 'Installed/Complete' And RecordTypeId = '01250000000UJtZAAW') limit 10");
-                QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, Body, BodyLength, ContentType FROM Attachment Where BodyLength >= 200000 And BodyLength <= 400000 And ContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' And ParentId IN (Select Id From Facility_Lease_Agreement__c Where CreatedDate >= 2015-0" + month + "-01T00:00:00Z AND CreatedDate <= 2015-0" + nextmonth + "-01T00:00:00Z)");
+                QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, Body, BodyLength, ContentType FROM Attachment Where BodyLength >= 200000 And BodyLength <= 400000 And ContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' And ParentId IN (Select Id From Facility_Lease_Agreement__c Where CreatedDate >= 2015-0" + month + "-01T00:00:00Z AND CreatedDate <= 2015-0" + nextmonth + "-01T00:00:00Z) limit 1");
                 //QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, BodyLength, Body, ContentType FROM Attachment Where BodyLength >= 200000 And BodyLength <= 400000 And ContentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' And CreatedDate >= 2014-01-01T00:00:00Z And ParentId IN " + aggIds +" LIMIT 500");
 
                 System.out.println("MONTH: " + month + " Result Count: " + queryResults.getSize());
@@ -136,31 +144,33 @@ public class Main {
 
                             ObjectHandler.AttachPropObject attachObject = objHandler.new AttachPropObject();
 
-                            attachObject.attachmentparentid             = Utilities.quote(a.getParentId());
-                            attachObject.attachmentid                   = Utilities.quote(a.getId());
-                            attachObject.attachmentname                 = Utilities.quote(a.getName());
+                            attachObject.attachmentparentid             = a.getParentId();
+                            attachObject.attachmentid                   = a.getId();
+                            attachObject.attachmentname                 = a.getName();
                             attachObject.numberofsheets                 = numberofsheets;
                             attachObject.attachmentsize                 = a.getBodyLength();
 
                             attachObject.date                           = Utilities.dateFormat(metadata.get("date"));
-                            attachObject.extended_properties            = Utilities.quote(metadata.get("extended-properties"));
-                            attachObject.dc_creator                     = Utilities.quote(metadata.get("dc:creator"));
-                            attachObject.publisher                      = Utilities.quote(metadata.get("publisher"));
-                            attachObject.author                         = Utilities.quote(metadata.get("Author"));
-                            attachObject.application_name               = Utilities.quote(metadata.get("Application-Name"));
+                            attachObject.extended_properties            = metadata.get("extended-properties");
+                            attachObject.dc_creator                     = metadata.get("dc:creator");
+                            attachObject.publisher                      = metadata.get("publisher");
+                            attachObject.author                         = metadata.get("Author");
+                            attachObject.application_name               = metadata.get("Application-Name");
                             attachObject.application_version            = Double.valueOf(metadata.get("Application-Version"));
                             attachObject.isprotected                    = Boolean.getBoolean(metadata.get("protected"));
-                            attachObject.content_type                   = Utilities.quote(metadata.get("Content-Type"));
+                            attachObject.content_type                   = metadata.get("Content-Type");
                             attachObject.creation_date                  = Utilities.dateFormat(metadata.get("Creation-Date"));
                             attachObject.dcterms_created                = Utilities.dateFormat(metadata.get("dcterms:created"));
-                            attachObject.dc_publisher                   = Utilities.quote(metadata.get("dc:publisher"));
-                            attachObject.extended_properties_application = Utilities.quote(metadata.get("extended-properties:Application"));
-                            attachObject.last_author                    = Utilities.quote(metadata.get("Last-Author"));
-                            attachObject.extended_properties_company    = Utilities.quote(metadata.get("extended-properties:Company"));
+                            attachObject.dc_publisher                   = metadata.get("dc:publisher");
+                            attachObject.extended_properties_application = metadata.get("extended-properties:Application");
+                            attachObject.last_author                     = metadata.get("Last-Author");
+                            attachObject.extended_properties_company    = metadata.get("extended-properties:Company");
                             attachObject.last_modified                  = Utilities.dateFormat(metadata.get("Last-Modified"));
                             attachObject.meta_save_date                 = Utilities.dateFormat(metadata.get("meta:save-date"));
 
                             attachmentProps.add(attachObject);
+
+                            System.out.println("Parsing Attachment..." + BossParsingHandler.parseResults(a, attachObject));
 
                         }
 
@@ -171,8 +181,8 @@ public class Main {
                         }
                     }
 
-                    //WRITE TO THE DATABASE
-                    System.out.println(PostgreSQLJDBC.attachProperties(attachmentProps));
+                    //WRITE TO THE POSTGRES DATABASE
+                    //System.out.println(PostgreSQLJDBC.attachProperties(attachmentProps));
 
                 } else {
                     System.out.println("No Results");
@@ -185,6 +195,57 @@ public class Main {
 
     }
 
+    public static String addressValidation(String addressJSON){
+    String response = "";
+
+        try{
+
+            URL url = new URL("http://esbd1dp01:8449/staples/apigwintdev1/v2/addressCleansing");
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
+            con.setRequestMethod("POST");
+            con.setRequestProperty("Content-Type", "application/json");
+            con.setRequestProperty("X-IBM-Client-Id", "a8529741-bd88-42e2-8fe3-6c7ae6469251");
+            con.setDoOutput(true);
+            con.setDoInput(true);
+
+            //String json = "{\"CustAddrCleansingRequest\":{\"CustAddress\":{\"CustAddrCleansing\":{\"Header\":{\"TransactionId\":\"7mRUcM3ww1\",\"TransType\":6,\"Company\":\"STAPLES\",\"Division\":\"ONLINE\",\"Group\":\"COPY&PRINT\",\"UserId\":\"OMNISOURCE\",\"ApplicationId\":\"NOOSH_OMNISOURCE\",\"ApplicationName\":\"OMNISOURCE\",\"DateTime\":20170802},\"Profile\":{\"Address\":[{\"AddrLine1\":\"719 2nd Ave\",\"AddrLine2\":\"\",\"AddrCity\":\"no city\",\"AddrState\":\"wa\",\"AddrZip\":\"98111\",\"AddrCountry\":\"USA\"}]}}}}}";
+
+            OutputStream os = con.getOutputStream();
+            os.write(addressJSON.getBytes("UTF-8"));
+            os.flush();
+            os.close();
+
+            //PARSE THE RESPONSE
+            BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+            String inputLine;
+            StringBuffer content = new StringBuffer();
+            while ((inputLine = in.readLine()) != null) {
+                content.append(inputLine);
+            }
+            in.close();
+
+            response = content.toString();
+
+        }catch(Exception e){
+            e.getStackTrace();
+        }
+
+        return response;
+    }
+
+   public static String getParamsString(Map<String, String> params) throws UnsupportedEncodingException{
+        StringBuilder result = new StringBuilder();
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+
+            result.append(URLEncoder.encode(entry.getKey(), "UTF-8"));
+            result.append("=");
+            result.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
+            result.append("&");
+        }
+
+        String resultString = result.toString();
+        return resultString.length() > 0 ? resultString.substring(0, resultString.length() - 1) : resultString;
+    }
 
     public static String parseUsingAutoDetect(String filename, TikaConfig tikaConfig,
                                               Metadata metadata) throws Exception {
