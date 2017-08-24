@@ -12,9 +12,9 @@
     <orderEntry type="jdk" jdkName="1.8" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="poi-3.16" level="project" />
-    <orderEntry type="library" name="tika-app-1.16" level="project" />
-    <orderEntry type="library" name="force-wsc-40.1.1" level="project" />
-    <orderEntry type="library" name="enterprise" level="project" />
+    <orderEntry type="library" exported="" name="tika-app-1.16" level="project" />
+    <orderEntry type="library" exported="" name="force-wsc-40.1.1" level="project" />
+    <orderEntry type="library" exported="" name="enterprise" level="project" />
     <orderEntry type="library" name="force-wsc-40.1.1-uber" level="project" />
     <orderEntry type="library" name="force-wsc-40.1.1-sources" level="project" />
     <orderEntry type="library" name="postgresql-42.1.1.jre6" level="project" />

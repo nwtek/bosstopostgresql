@@ -34,15 +34,16 @@ public class Main {
 
     public static void main(String[] args) {
 
+        /****
         ConnectorConfig config = new ConnectorConfig();
         config.setUsername(USERNAME);
         config.setPassword(PASSWORD);
-
+         ****/
         //config.setTraceMessage(true);
 
-        try {
+        //try {
 
-            connection = Connector.newConnection(config);
+            /****connection = Connector.newConnection(config);****/
 
             /****
             // display some current settings
@@ -55,10 +56,11 @@ public class Main {
             /*****System.out.println("Parsing Attachment..." + BossParsingHandler.parseResults());*****/
 
             // run the different examples
-            //queryAttachment();
+            System.out.println(queryAttachment("00P5000000OqCUhEAN"));
+
 
             //perform address validation
-            //System.out.println("RESPONSE: " + addressValidation());
+            //System.out.println("RESPONSE: " + addressValidation("some string"));
 
           /*
           queryContacts();
@@ -67,17 +69,123 @@ public class Main {
           deleteAccounts();
           */
 
-        } catch (ConnectionException e1) {
+        //} catch (ConnectionException e1) {
 
+            //System.out.println("ERROR: INVALID CREDENTIALS");
+            //e1.printStackTrace();
+        //}
+
+    }
+
+    public static Boolean connect(){
+        ConnectorConfig config = new ConnectorConfig();
+        config.setUsername(USERNAME);
+        config.setPassword(PASSWORD);
+
+        Boolean connected = false;
+
+        try {
+            connection = Connector.newConnection(config);
+            connected = true;
+        } catch (ConnectionException e1) {
+            connected = true;
             System.out.println("ERROR: INVALID CREDENTIALS");
             //e1.printStackTrace();
         }
 
+        return connected;
     }
 
+    public static String queryAttachment(String attachmentId) {
+        JSONParser jsonParser = new JSONParser();
+        String parseResults = "No Results";
 
-    // queries and displays the 5 newest contacts
-    private static void queryAttachment() {
+        if(!connect()){
+            return "Bad Connection";
+        }
+
+        try {
+                QueryResult queryResults = connection.query("SELECT Id, ParentId, Name, CreatedDate, Body, BodyLength, ContentType FROM Attachment Where ID = " + Utilities.quote(attachmentId));
+
+                ArrayList<ObjectHandler.AttachPropObject> attachmentProps = new ArrayList<>();
+                if (queryResults.getSize() > 0) {
+                        for (int i = 0; i < queryResults.getRecords().length; i++) {
+
+                            JSONObject jsonObject = new JSONObject();
+
+                            Attachment a = (Attachment) queryResults.getRecords()[i];
+
+                            //String attachBody = a.getBody().toString();
+                            //CAN READ THE EXCEL FILE CONTENTS
+                            AutoDetectParser parser = new AutoDetectParser();
+                            //StringWriter strWriter = new StringWriter();
+                            //TIKA LIBRARIES
+                            ParseContext context = new ParseContext();
+                            Metadata metadata = new Metadata();
+                            BodyContentHandler handler = new BodyContentHandler(-1);
+
+
+                            InputStream stream = TikaInputStream.get(a.getBody());
+                            parser.parse(stream, handler, metadata, context);
+                            String handlerBody = handler.toString();
+                            //System.out.println("HANDLER: " + handlerBody);
+
+                            //HSSF POI LIBRARY
+                            Workbook wb = WorkbookFactory.create(stream);
+                            int numberofsheets = wb.getNumberOfSheets();
+                            //System.out.println("NUMBER OF SHEETS: " + numberofsheets);
+
+                            ArrayList<ObjectHandler.ShipToObject> rowData = new ArrayList<ObjectHandler.ShipToObject>();
+
+                            ObjectHandler objHandler = new ObjectHandler();
+
+                            //METADATA TESTS
+                            String[] metadataNames = metadata.names();
+
+                            ObjectHandler.AttachPropObject attachObject = objHandler.new AttachPropObject();
+
+                            attachObject.attachmentparentid             = a.getParentId();
+                            attachObject.attachmentid                   = a.getId();
+                            attachObject.attachmentname                 = a.getName();
+                            attachObject.numberofsheets                 = numberofsheets;
+                            attachObject.attachmentsize                 = a.getBodyLength();
+
+                            attachObject.date                           = Utilities.dateFormat(metadata.get("date"));
+                            attachObject.extended_properties            = metadata.get("extended-properties");
+                            attachObject.dc_creator                     = metadata.get("dc:creator");
+                            attachObject.publisher                      = metadata.get("publisher");
+                            attachObject.author                         = metadata.get("Author");
+                            attachObject.application_name               = metadata.get("Application-Name");
+                            attachObject.application_version            = Double.valueOf(metadata.get("Application-Version"));
+                            attachObject.isprotected                    = Boolean.getBoolean(metadata.get("protected"));
+                            attachObject.content_type                   = metadata.get("Content-Type");
+                            attachObject.creation_date                  = Utilities.dateFormat(metadata.get("Creation-Date"));
+                            attachObject.dcterms_created                = Utilities.dateFormat(metadata.get("dcterms:created"));
+                            attachObject.dc_publisher                   = metadata.get("dc:publisher");
+                            attachObject.extended_properties_application = metadata.get("extended-properties:Application");
+                            attachObject.last_author                     = metadata.get("Last-Author");
+                            attachObject.extended_properties_company    = metadata.get("extended-properties:Company");
+                            attachObject.last_modified                  = Utilities.dateFormat(metadata.get("Last-Modified"));
+                            attachObject.meta_save_date                 = Utilities.dateFormat(metadata.get("meta:save-date"));
+
+                            attachmentProps.add(attachObject);
+
+                            parseResults = BossParsingHandler.parseResults(a, attachObject);
+
+                        }
+                    }
+
+                    //WRITE TO THE POSTGRES DATABASE
+                    //System.out.println(PostgreSQLJDBC.attachProperties(attachmentProps));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return parseResults;
+    }
+
+    private static void queryAttachments() {
         JSONParser jsonParser = new JSONParser();
 
         System.out.println("Querying for Attachment...");

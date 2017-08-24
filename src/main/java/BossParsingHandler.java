@@ -111,6 +111,7 @@ public class BossParsingHandler {
     }
 
     public static String parseResults(Attachment a, ObjectHandler.AttachPropObject aProps){
+
         try{
                 JSONObject jsonObject = new JSONObject();
                 BossParsingHandler innerClass = new BossParsingHandler();
@@ -233,12 +234,12 @@ public class BossParsingHandler {
                             JsonElement objectFieldValues   = gson.toJsonTree(mapSingleValue);
                             JsonElement objectRelatedLists  = gson.toJsonTree(mapValuesArray);
 
-                            objectCore.getAsJsonObject().add("Sheet Data", objectFieldValues);
-                            objectFieldValues.getAsJsonObject().add("Sheet Arrays", objectRelatedLists);
+                            objectCore.getAsJsonObject().add("row", objectFieldValues);
+                            objectFieldValues.getAsJsonObject().add("arrays", objectRelatedLists);
 
                             String json = gson.toJson(objectCore);
 
-                            System.out.println("LOGGING TO MONGO: " + MongoHandler.mongo("classification_one", json));
+                            System.out.println("LOGGING TO MONGO: " + MongoHandler.mongo("attachments", json));
                         }
 
                     }
@@ -250,7 +251,7 @@ public class BossParsingHandler {
             e.printStackTrace();
     }
 
-    return "string";
+    return "success";
 }
 
 public class Site{
